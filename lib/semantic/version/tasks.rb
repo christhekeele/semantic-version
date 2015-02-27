@@ -31,10 +31,14 @@ module Semantic
 
       def version
         @version ||= Semantic::Version.read version_filepath
+      rescue
+        nil
       end
 
       def version_filepath
         @version_filepath ||= Pathname.new find_version_file
+      rescue
+        nil
       end
 
       def find_version_file
@@ -62,7 +66,7 @@ module Semantic
               end
             end
           end
-        end
+        end if @prompt_for_version_file
       end
 
       def update_version(type, level = default_level, incrementor = default_incrementor, num = default_num)
@@ -107,7 +111,7 @@ include Semantic::Version::Tasks
 
 desc [
   'Show version number in',
-  version_filepath ? version_filepath : '.version',
+  version_filepath ? version_filepath : '.version file',
   version ? "(v#{version})" : nil,
 ].compact.join(' ')
 task :version do
@@ -167,6 +171,7 @@ namespace :version do
 
     desc generate_description(type, default_level, types[default_type], default_num) if type == default_type
     task type do
+      @prompt_for_version_file = true
       update_version(type, default_level, types[type], default_num)
     end
 
@@ -176,12 +181,14 @@ namespace :version do
 
         desc generate_description(type, level, types[type], default_num) if type == default_type and level != default_level
         task level do
+          @prompt_for_version_file = true
           update_version(type, level, types[type], default_num)
         end
 
         namespace level do
           desc generate_description(type, level, types[type], 'the specified number') unless true # type == default_type
           task types[type], :num do |_, opts|
+            @prompt_for_version_file = true
             update_version(type, level, types[type], Integer(opts[:num]))
           end
         end
@@ -194,22 +201,26 @@ namespace :version do
 
   desc generate_description(:release)
   task :release do
+    @prompt_for_version_file = true
     update_version(:release)
   end
 
   task :number do
+    @prompt_for_version_file = true
     say version.number
   end
 
   %i[prerelease meta].each do |data|
 
     task data do
+      @prompt_for_version_file = true
       say version.send data
     end
 
     namespace data do
 
       task :clear do
+        @prompt_for_version_file = true
         updated_version = version.tap do |v|
           v.send :"#{data}=", nil
         end
@@ -217,6 +228,7 @@ namespace :version do
       end
 
       task :set, :to do |_, opts|
+        @prompt_for_version_file = true
         updated_version = version.tap do |v|
           v.send :"#{data}=", *opts[:to].split('.')
         end
@@ -224,6 +236,7 @@ namespace :version do
       end
 
       task :append, :element do |_, opts|
+        @prompt_for_version_file = true
         updated_version = version.tap do |v|
           v.send(:"#{data}") << opts[:element]
         end
