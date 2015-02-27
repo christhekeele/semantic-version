@@ -1,4 +1,5 @@
 require 'bundler/gem_tasks'
+require 'semantic/version/tasks'
 
 desc 'Open a pry console preloaded with this library'
 task console: 'console:pry'

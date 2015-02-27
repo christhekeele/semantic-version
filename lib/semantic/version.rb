@@ -13,9 +13,6 @@ module Semantic
 
     class << self
 
-      extend Forwardable
-      def_delegators :number, :major, :minor, :patch, :stable?
-
       def pattern
         /(?<number>\d+\.\d+\.\d+)(\-(?<prerelease>[^+]+))?(\+(?<meta>.+))?/
       end
@@ -40,13 +37,21 @@ module Semantic
       super Number.new(major, minor, patch), Data.new(*prerelease), Data.new(*meta)
     end
 
+    extend Forwardable
+    def_delegators :number, :major, :minor, :patch, :stable?
+
     def bump(*args)
       clone.bump!(*args)
     end
 
-    def bump!(*args)
+    def bump!(*args, preserve: [], **opts)
       tap do |version|
         version.number.bump!(*args)
+        preserve = Array(preserve)
+        unless preserve.include? :all
+          version.prerelease = nil unless preserve.include? :prerelease
+          version.meta = nil unless preserve.include? :meta
+        end
       end
     end
 
@@ -55,7 +60,7 @@ module Semantic
     end
 
     def prerelease= *array
-      self[:prerelease] = Data.new(*array)
+      self[:prerelease] = array.flatten.compact.empty? ? nil : Data.new(*array.flatten)
     end
 
     def meta?
@@ -63,7 +68,7 @@ module Semantic
     end
 
     def meta= *array
-      self[:meta] = Data.new(*array)
+      self[:meta] = array.flatten.compact.empty? ? nil : Data.new(*array.flatten)
     end
 
     def to_s
